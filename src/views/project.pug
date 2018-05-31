@@ -1,0 +1,8 @@
+extends layout
+
+block content
+  h3= project
+  each log in logs
+    .card(style="margin-top: 8px;")
+      pre.card-text(style="background-color: rgb(32, 32, 32); padding: 6px;")
+        code(style="color: white; font-family: monospace;")= log.log

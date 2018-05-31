@@ -1,0 +1,7 @@
+extends layout
+
+block content
+  h3 Projects
+  ul.list-group
+  each project in projects
+    a.list-group-item.list-group-item-action(href="/"+project)= project
