@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-const BUILD_DIR = "build";
+const BUILD_DIR = __dirname+"build";
 const BUILD_OUTPUT = `${BUILD_DIR}/build`
 const BUILD_INSTAL = `${BUILD_OUTPUT}/tmp`
 const BUILD_MANIFEST = `${BUILD_INSTAL}/manifest.json`
@@ -51,10 +51,10 @@ function send(type, data) {
 }
 
 function readJson(file) {
-  if (fs.accessSync(file, fs.constants.F_OK | fs.constants.W_OK))
+  if (!fs.existsSync(file))
     return false
   else {
-    return require("./"+file);
+    return require(file);
   }
 }
 
