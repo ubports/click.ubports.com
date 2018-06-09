@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-const BUILD_DIR = __dirname+"build";
+const BUILD_DIR = __dirname+"/build";
 const BUILD_OUTPUT = `${BUILD_DIR}/build`
 const BUILD_INSTAL = `${BUILD_OUTPUT}/tmp`
 const BUILD_MANIFEST = `${BUILD_INSTAL}/manifest.json`
