@@ -85,7 +85,8 @@ function spawn(script, args, callback) {
     send("build-log-buffer-dump", buildlog);
     callback();
   });
-  buildchild.stdout.on('data', (_data) => {
+
+  var onData = (_data) => {
     var data = _data.toString();
     buildlog = buildlog + data;
     send("build-log-append", data);
@@ -96,7 +97,10 @@ function spawn(script, args, callback) {
       send("build-log-buffer-dump", buildlog);
       i = 0;
     }
-  });
+  }
+
+  buildchild.stdout.on('data', onData);
+  buildchild.stderr.on('data', onData);
 }
 
 function buildFailed(err) {
