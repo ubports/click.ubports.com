@@ -18,7 +18,7 @@
 const ServerSocket = require('./server-socket.js');
 const GithubHook = require('./gh-hook.js');
 const openstore = require('../interactors/openstore.js');
-const config = require("../../config.json");
+const config = require("../config.js");
 const uuidv4 = require('uuid/v4');
 
 // For now eveything is memory only, bad yes, indeed really bad

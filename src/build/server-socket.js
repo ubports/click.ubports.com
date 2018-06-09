@@ -17,7 +17,7 @@
 
 const http = require('http');
 const sockjs = require('sockjs');
-const config = require("../../config.json");
+const config = require("../config.js");
 
 function null_build() {
   return {

@@ -16,7 +16,7 @@
  */
 
 var githubhook = require('githubhook');
-const config = require("../../config.json");
+const config = require("../config.js");
 
 //TODO remove to edit this before putting to real use!!!
 //ok for now since we only accept things from ubports repo
