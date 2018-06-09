@@ -16,10 +16,11 @@
  */
 
 var githubhook = require('githubhook');
+const config = require("../../config.json");
 
 //TODO remove to edit this before putting to real use!!!
 //ok for now since we only accept things from ubports repo
-var github = githubhook({port: 9999, secret: "sddsds"});
+var github = githubhook({port: 9990, secret: config.secret});
 
 class GithubHook {
   constructor(server) {
@@ -29,6 +30,7 @@ class GithubHook {
         console.error("Unknown user!!!! die now!");
         return;
       }
+      console.log("GITHOKK", data.repository.full_name, data.repository.clone_url);
       server.queueBuild(data.repository.full_name, data.repository.clone_url);
     });
 

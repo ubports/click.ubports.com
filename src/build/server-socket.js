@@ -15,14 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-var http = require('http');
-var sockjs = require('sockjs');
+const http = require('http');
+const sockjs = require('sockjs');
+const config = require("../../config.json");
 
 function null_build() {
   return {
     done: () => {},
     logAppend: () => {},
-    logBufferDump: () => {}
+    logBufferDump: () => {},
+    building: () => {}
   }
 }
 
@@ -38,7 +40,7 @@ class Node {
         if (!message.type) return;
         switch (message.type) {
           case "auth":
-            if (message.data.key === "key") {
+            if (message.data.key === config.key) {
               _this._name = message.data.name;
               console.log("build node accepted! ("+_this.name+")");
               server.newNode(_this);
@@ -56,11 +58,24 @@ class Node {
           case "build-log-buffer-dump":
             _this.cb.logBufferDump(message.data);
             break;
+          case "build-appid":
+            _this.cb.setAppId(message.data);
+            break;
+          case "build-success":
+            _this.send("build-upload-url", server._main.createUploadId(_this.cb));
+            break;
           case "build-done":
             console.log("building done on "+_this.building);
             _this.building = false;
             server.nodeReady(_this.name);
-            _this.cb.done(message.data);
+            _this.cb.done();
+            this.cb = null_build();
+            break;
+          case "build-failed":
+            console.log("building failed on "+_this.building);
+            _this.building = false;
+            server.nodeReady(_this.name);
+            _this.cb.buildFailed(message.data);
             this.cb = null_build();
             break;
           case "status":
@@ -84,6 +99,7 @@ class Node {
       console.log("building", project, "on node", this.name);
       this.building = project;
       this.cb = cb;
+      this.cb.buildStarted();
       // Fingers crossed... *snap*... crossed them too hard... it hurts
       this.send("build", git);
     } else {
@@ -102,7 +118,7 @@ class Node {
 }
 
 class SocketBuildServer {
-  constructor(main) {
+  constructor(main, server) {
     var _this = this;
     this.queue = [];
     this._nodes = {};
@@ -113,9 +129,7 @@ class SocketBuildServer {
         _this._conns.push(new Node(conn, _this));
     });
 
-    var server = http.createServer();
     this._server.installHandlers(server, {prefix:'/api/v1/build/node'});
-    server.listen(9999, '0.0.0.0');
   }
 
   queueBuild(project, git, cb) {
@@ -147,13 +161,13 @@ class SocketBuildServer {
   }
 
   newNode(node) {
-    // Xmas came early this year...
+    // Xmas cmake early this year...
     this._nodes[node.name] = node;
     this.nodeReady(node.name);
   }
 
   removeNode(name) {
-    // Xmas camke late this year...
+    // Xmas cmake late this year...
     delete this._nodes[name];
     console.log("Node removed", name);
   }

@@ -15,20 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+var http = require('http');
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var stylus = require('stylus');
+var multer  = require('multer');
 
 var Router = require('./src/routes/index');
 const Build = require('./src/build');
 
 var app = express();
-
-const build = new Build();
-const router = new Router(build);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'src/views'));
@@ -41,6 +40,9 @@ app.use(cookieParser());
 app.use(stylus.middleware(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
+var server = http.createServer(app);
+const build = new Build(server);
+const router = new Router(build);
 app.use('/', router.router);
 
 // catch 404 and forward to error handler
@@ -59,4 +61,4 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-module.exports = app;
+module.exports = {app: app, server: server};

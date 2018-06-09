@@ -1,0 +1,6 @@
+{
+  "key": "key",
+  "apiKey": "KEY",
+  "url": "http://example.com",
+  "secret": "secret"
+}

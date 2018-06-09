@@ -7,9 +7,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },
-  "author": "",
+  "author": "Marius Gripsgard <marius@ubports.com>",
   "license": "ISC",
   "dependencies": {
+    "request": "^2.87.0",
+    "rimraf": "^2.6.2",
+    "simple-git": "^1.95.1",
     "sockjs-client": "^1.1.5"
   }
 }

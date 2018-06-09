@@ -15,9 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+const BUILD_DIR = "build";
+const BUILD_OUTPUT = `${BUILD_DIR}/build`
+const BUILD_INSTAL = `${BUILD_OUTPUT}/tmp`
+const BUILD_MANIFEST = `${BUILD_INSTAL}/manifest.json`
+const BUILD_CLICKABLE = `${BUILD_DIR}/clickable.json`
+
 const SockJS = require('sockjs-client')
-const spawn = require('child_process').spawn;
+const cp = require('child_process');
 const config = require('./config.json');
+const path = require('path');
+const fs = require('fs');
+const request = require("request");
+const simpleGit = require('simple-git/promise');
+const rimraf = require("rimraf");
 
 var host;
 var port;
@@ -32,48 +43,135 @@ function omg(e) {
 }
 
 // Don't ask
-function send(m) {
-  clientSocket.send(JSON.stringify(m));
+function send(type, data) {
+  clientSocket.send(JSON.stringify({
+    type: type,
+    data: data
+  }));
 }
 
-function build(git) {
-  const buildchild = spawn("./build.sh", [git]);
-  building=true;
+function readJson(file) {
+  if (fs.accessSync(file, fs.constants.F_OK | fs.constants.W_OK))
+    return false
+  else {
+    return require("./"+file);
+  }
+}
+
+function findClick() {
+ var files=fs.readdirSync(BUILD_OUTPUT);
+ for(var i=0;i<files.length;i++){
+     var filename = path.join(BUILD_OUTPUT,files[i]);
+     var stat = fs.lstatSync(filename);
+
+     if (stat.isDirectory())
+      continue;
+
+     if (filename.endsWith(".click"))
+         return filename;
+ }
+}
+
+function spawn(script, args, callback) {
   var buildlog = "";
-  var i=0;
+  var i = 0;
+  const buildchild = cp.spawn(script, args, {
+    cwd: BUILD_DIR
+  });
   buildchild.stdout.on('close', (code) => {
-    console.log("exit");
-    building=false;
-    if (code) {
-      send({
-        type: "build-failed",
-        data: code
-      })
-    } else {
-      send({
-        type: "build-done",
-        data: buildlog
-      })
-    }
+    if (code)
+      return buildFailed(code);
+
+    send("build-log-buffer-dump", buildlog);
+    callback();
   });
   buildchild.stdout.on('data', (_data) => {
     var data = _data.toString();
     buildlog = buildlog + data;
-    send({
-      type: "build-log-append",
-      data: data
-    });
+    send("build-log-append", data);
 
     i++;
     // Why 50? because I said so!
     if (i >= 50) {
-      send({
-        type: "build-log-buffer-dump",
-        data: buildlog
-      });
-      i=0;
+      send("build-log-buffer-dump", buildlog);
+      i = 0;
     }
   });
+}
+
+function buildFailed(err) {
+  send("build-failed", err);
+  building = false;
+}
+
+function buildDone() {
+  building = false;
+  send("build-done");
+}
+
+function buildUploadUrl(uid) {
+  var click = findClick();
+  if (!click)
+    return buildFailed("Cannot find click");
+
+  var url = `http://${host}:${port}/api/v1/build/upload/${uid}`
+  console.log(url);
+
+  var req = request.post(url, function (err, res, body) {
+    if (err)
+      return buildFailed("Cannot upload click");
+    else
+      return buildDone();
+  });
+  var form = req.form();
+  form.append('file', fs.createReadStream(click));
+}
+
+function buildSuccess() {
+  if (!findClick())
+    return buildFailed("Cannot find click");
+
+  send("build-success");
+}
+
+function buildClick() {
+  var manifest = readJson(BUILD_MANIFEST);
+  if (!manifest)
+    return buildFailed("Missing manifest.json");
+
+  if (manifest.name && typeof manifest.name === "string")
+    send("build-appid", manifest.name);
+  spawn("clickable", ["-k", "16.04", "build-click"], buildSuccess);
+}
+
+function clone(git) {
+  send("build-log-append", `Git clone ${git}`);
+  simpleGit().clone(git, BUILD_DIR).then(() => {
+    var clickable = readJson(BUILD_CLICKABLE);
+    if (!clickable)
+      return buildFailed("Missing clickable.json");
+
+    if (clickable.appID && typeof clickable.appID === "string")
+      send("build-appid", clickable.appID);
+
+    console.log("CLICKABLE");
+    spawn("clickable", ["-k", "16.04", "build"], buildClick);
+  }).catch((e) => {
+    console.log(e);
+    buildFailed("Failed to clone git repo");
+  });
+}
+
+function build(git) {
+  building = true;
+
+  if (fs.existsSync(BUILD_DIR))
+    rimraf(BUILD_DIR, (e) => {
+      console.log(e);
+      clone(git);
+    });
+  else
+    clone(git);
 }
 
 if (!config)
@@ -83,7 +181,7 @@ if (!config.host)
 else
   host = config.host
 if (!config.port)
-  port = 9999;
+  port = 3000;
 else
   port = config.port;
 if (!config.key)
@@ -99,17 +197,14 @@ const clientSocket = new SockJS("http://" + host + ":" + port + "/api/v1/build/n
 
 clientSocket.addEventListener("open", (message) => {
   console.log("Master, we are connected to master!")
-  send({
-    type: "auth",
-    data: {
-      key: config.key,
-      name: config.name
-    }
-  })
+  send("auth", {
+    key: config.key,
+    name: config.name
+  });
 });
 
 clientSocket.addEventListener("message", (_message) => {
-    var message = JSON.parse(_message.data);
+  var message = JSON.parse(_message.data);
   if (!message.type) return;
 
   switch (message.type) {
@@ -118,7 +213,7 @@ clientSocket.addEventListener("message", (_message) => {
       if (message.data === "ok")
         console.log("Auth ok");
       else
-        console.log("Key is not valid!!! WHY DID YOU DO THIS TO ME");
+        omg("Key is not valid!!! WHY DID YOU DO THIS TO ME");
       break;
     case "build":
       // If you dont fuck it up, and do it right, It just works!
@@ -129,18 +224,20 @@ clientSocket.addEventListener("message", (_message) => {
       buildchild.kill();
       break;
     case "status":
-      send({
-        type: "status",
-        data: building
-      })
+      send("status", {
+        building: building
+      });
       break;
-    // Fuck default, we dont care about other events
+    case "build-upload-url":
+      buildUploadUrl(message.data);
+      break;
+      // Fuck default, we dont care about other events
   }
 })
 
 clientSocket.addEventListener("close", (message) => {
- if (!message.wasClean)
-   console.log(message.reason);
- // Huston, we got porblems!
- process.exit();
+  if (!message.wasClean)
+    console.log(message.reason);
+  // Huston, we got porblems!
+  process.exit();
 });

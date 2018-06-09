@@ -2,7 +2,18 @@ extends layout
 
 block content
   h3= project
-  each log in logs
-    .card(style="margin-top: 8px;")
-      pre.card-text(style="background-color: rgb(32, 32, 32); padding: 6px;")
-        code(style="color: white; font-family: monospace;")= log.log
+  ul.list-group
+  each build, i in builds
+    a.list-group-item.list-group-item-action.d-flex.justify-content-between.align-items-center(href="/"+project+"/"+i) Build nr #{i}
+      if build.building
+        .badge.badge-warning
+          span(style="color: white;").oi.oi-pulse
+      else if build.failed
+        .badge.badge-danger
+          span(style="color: white;").oi.oi-x
+      else if !build.queue
+        .badge.badge-success
+          span(style="color: white;").oi.oi-check
+      else
+        .badge.badge-info
+          span(style="color: white;").oi.oi-layers

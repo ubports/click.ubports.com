@@ -1,0 +1,16 @@
+extends layout
+
+block content
+  if log.canUploadOpenstore
+    h3 #{log.project.openstoreAppName} (#{log.project.openstoreAppid})
+  else
+    h3= project
+  if log.file
+    a(href="/clicks/"+log.file) Download #{log.file}
+    if log.uploadedToOpenstore
+      p Uploaded to the openstore
+    else
+      p Not uploaded to the openstore
+  .card(style="margin-top: 8px;")
+    pre.card-text(style="background-color: rgb(32, 32, 32); padding: 6px;")
+      code(style="color: white; font-family: monospace;")= log.log
