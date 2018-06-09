@@ -172,9 +172,9 @@ class Project {
 }
 
 class BuildServer {
-  constructor(server) {
+  constructor(server, app) {
     this._serverSocket = new ServerSocket(this, server);
-    this._ghHook = new GithubHook(this);
+    this._ghHook = new GithubHook(this, app);
     this._projects = {};
     this._uploadId = {};
   }

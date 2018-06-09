@@ -41,7 +41,7 @@ app.use(stylus.middleware(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 var server = http.createServer(app);
-const build = new Build(server);
+const build = new Build(server, app);
 const router = new Router(build);
 app.use('/', router.router);
 

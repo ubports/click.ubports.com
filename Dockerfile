@@ -11,6 +11,8 @@ COPY . .
 
 EXPOSE 3000
 
+RUN chown -R node /usr/src/app/public
+
 ENV TINI_VERSION v0.18.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini

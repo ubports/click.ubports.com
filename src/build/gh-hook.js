@@ -15,27 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-var githubhook = require('githubhook');
+var GithubWebHook = require('express-github-webhook');
 const config = require("../config.js");
 
-//TODO remove to edit this before putting to real use!!!
-//ok for now since we only accept things from ubports repo
-var github = githubhook({port: 9990, secret: config.secret});
-
 class GithubHook {
-  constructor(server) {
-    github.on('push', function (repo, ref, data) {
+  constructor(server, app) {
+    var webhookHandler = GithubWebHook({ path: '/api/callback', secret: config.secret });
+
+    app.use(webhookHandler);
+
+    webhookHandler.on('push', function (event, data) {
       if (data.repository.owner.name !== "ubports") {
         // Who is knoking on my door... well anyway fuck off ok?
         console.error("Unknown user!!!! die now!");
         return;
       }
-      console.log("GITHOKK", data.repository.full_name, data.repository.clone_url);
-      server.queueBuild(data.repository.full_name, data.repository.clone_url);
+      console.log("GITHOKK", event, data);
+      server.queueBuild(event, data.repository.clone_url);
     });
-
-    // Listen, listen, just do it!
-    github.listen();
   }
 }
 

@@ -100,11 +100,13 @@ function spawn(script, args, callback) {
 }
 
 function buildFailed(err) {
+  console.log("failed", err);
   send("build-failed", err);
   building = false;
 }
 
 function buildDone() {
+  console.log("done");
   building = false;
   send("build-done");
 }
@@ -114,7 +116,11 @@ function buildUploadUrl(uid) {
   if (!click)
     return buildFailed("Cannot find click");
 
-  var url = `http://${host}:${port}/api/v1/build/upload/${uid}`
+  var url;
+  if (port == "80")
+    url = `https://${host}/api/v1/build/upload/${uid}`
+  else
+    url = `https://${host}:${port}/api/v1/build/upload/${uid}`
   console.log(url);
 
   var req = request.post(url, function (err, res, body) {
@@ -193,7 +199,11 @@ if (!config.name)
 else
   key = config.name;
 
-const clientSocket = new SockJS("http://" + host + ":" + port + "/api/v1/build/node")
+var clientSocket;
+if (port == "80")
+  clientSocket = new SockJS("https://" + host + "/api/v1/build/node")
+else
+  clientSocket = new SockJS("https://" + host + ":" + port + "/api/v1/build/node")
 
 clientSocket.addEventListener("open", (message) => {
   console.log("Master, we are connected to master!")
